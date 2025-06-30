@@ -1,6 +1,13 @@
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 import os
+import asyncio
+from telegram import Update
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    MessageHandler,
+    ContextTypes,
+    filters
+)
 
 # 🔐 جلب التوكن من متغير البيئة
 TOKEN = os.environ.get("TOKEN")
@@ -22,17 +29,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message.text.strip().lower()
 
-    # ✅ رد السلام
     if "السلام عليكم" in message and "ورحمة الله" in message:
         await update.message.reply_text("وعليكم السلام ورحمة الله")
         return
 
-    # ✅ رد الصلوات
     if "صلوات" in message and "محمد" in message and "آل" in message:
         await update.message.reply_text("اللهم صَلِّ عَلَى مُحَمَّدٍ وَآلِ مُحَمَّدٍ")
         return
 
-    # ✅ إرسال صورة الصفحة
     if message.isdigit():
         page_number = int(message)
         if 1 <= page_number <= 620:
@@ -40,18 +44,24 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if os.path.exists(file_path):
                 with open(file_path, 'rb') as photo:
                     await update.message.reply_photo(photo=photo)
-        return  # لا ترد إذا الرقم خارج النطاق
+        return
 
-    # ❌ تجاهل أي رسالة أخرى
+    # 🧘‍♂️ تجاهل أي رسائل أخرى غير مفهومة
     return
 
-# 🚀 تشغيل البوت
-def main():
+# 🚀 بدء تشغيل البوت
+async def main():
+    if not TOKEN:
+        print("❌ لم يتم تحديد التوكن. يرجى تعيين متغير البيئة TOKEN.")
+        return
+
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    print("✅ البوت يعمل الآن... انتظر الرسائل من تيليغرام.")
-    app.run_polling()
 
+    print("✅ البوت يعمل الآن... في انتظار الرسائل.")
+    await app.run_polling()
+
+# ✨ نقطة الانطلاق
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
