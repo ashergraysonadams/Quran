@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: holly-quran-bot
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python quran.py"
+    pythonVersion: 3.10.13
+    plan: free
