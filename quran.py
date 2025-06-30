@@ -1,6 +1,7 @@
 # quran.py
 import os
 import asyncio
+import threading
 from aiohttp import web
 from telegram import Update
 from telegram.ext import (
@@ -15,9 +16,11 @@ TOKEN = os.environ.get("TOKEN")
 QURAN_PAGES_DIR = os.path.join(os.path.dirname(__file__), "pages")
 PORT = int(os.environ.get("PORT", 10000))
 
-# Health‐check endpoint
+
+# —— Health‐check endpoint
 async def health(request):
     return web.Response(text="OK")
+
 
 async def start_health_server():
     app = web.Application()
@@ -27,12 +30,22 @@ async def start_health_server():
     site = web.TCPSite(runner, "0.0.0.0", PORT)
     await site.start()
 
-# Telegram handlers
+
+def spawn_health_server():
+    """
+    تشغّل حلقة أحداث منفصلة خاصة بالـ health server
+    """
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(start_health_server())
+    loop.run_forever()
+
+
+# —— Telegram handlers
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "📖 *تقدمة السيد حيدر الموسوي*\n"
         "بسم الله الرحمن الرحيم، وبه نستعين.\n"
-        "يسرنا أن نقدم لكم هذا البوت المبارك لتصفح صفحات القرآن الكريم.\n\n"
         "🌙 أرسل رقم الصفحة (1–620).",
         parse_mode="Markdown"
     )
@@ -51,20 +64,23 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 with open(path, "rb") as photo:
                     return await update.message.reply_photo(photo=photo)
 
+
 def main():
     if not TOKEN:
         print("❌ TOKEN not set.")
         return
 
-    # start health server
-    asyncio.create_task(start_health_server())
+    # شغّل health‐server في ثريد منفصل
+    threading.Thread(target=spawn_health_server, daemon=True).start()
 
+    # شغّل بوت التيليجرام
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    print(f"✅ Bot started — health on port {PORT}")
+    print(f"✅ Bot started — health endpoint on port {PORT}")
     app.run_polling()
+
 
 if __name__ == "__main__":
     main()
