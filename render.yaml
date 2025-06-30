@@ -1,8 +1,6 @@
 services:
   - type: web
     name: holly-quran-bot
-    env: python
-    pythonVersion: 3.11
-    buildCommand: pip install -r requirements.txt
-    startCommand: python quran.py
+    env: docker
+    dockerfilePath: ./Dockerfile
     plan: free
