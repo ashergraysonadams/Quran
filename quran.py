@@ -33,6 +33,7 @@ def spawn_health_server():
     asyncio.set_event_loop(loop)
     loop.run_until_complete(start_health_server())
     loop.run_forever()
+
 # —— Telegram handlers
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -40,13 +41,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "بسم الله الرحمن الرحيم، وبه نستعين.\n"
         "🌙 أرسل رقم الصفحة (1–620) لعرض صورة المصحف.\n"
         "🎧 أو اكتب: `ترتيل 45` لسماع التلاوة فقط.\n"
-        "🧠 أو اكتب اسم حكم مثل: `ن الإظهار`، `مد طبيعي`، `بسملة`\n"
+        "🧠 أو اكتب اسم حكم مثل: `ن الإظهار`، `مد طبيعي`، `البسملة`\n"
         "❓ اكتب `مساعدة` أو `الأوامر` لعرض القائمة الكاملة.",
         parse_mode="Markdown"
     )
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text.strip().lower()
+    text = update.message.text.strip()
 
     if text == "السلام عليكم":
         return await update.message.reply_text("وعليكم السلام ورحمة الله وبركاته")
@@ -74,7 +75,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     with open(audio_path, "rb") as audio:
                         return await update.message.reply_voice(voice=audio)
 
-    if text == "بسملة":
+    # ✅ البسملة (يدعم "البسملة" و"بسملة")
+    if text in ["البسملة", "بسملة"]:
         return await update.message.reply_text(
             "🌸 *البسملة:*\n"
             "﴿بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ﴾\n\n"
@@ -112,7 +114,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "• ﴿غَفُورٌ رَّحِيمٌ﴾ → غَفُورُرَّحِيمٌ",
             parse_mode="Markdown"
         )
-
     if text == "ن الإقلاب":
         return await update.message.reply_text(
             "🔁 *الإقلاب (في النون الساكنة والتنوين):*\n"
@@ -145,9 +146,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "📜 *قائمة الأوامر:*\n"
             "• `ترتيل 45` لإرسال الصوت فقط\n"
             "• أرسل رقم الصفحة لعرض الصورة\n"
-            "• `بسملة`، `ن الإظهار`، `مد طبيعي`، وغيرها",
+            "• `البسملة`، `ن الإظهار`، `مد طبيعي`، وغيرها",
             parse_mode="Markdown"
         )
+
 # —— تشغيل البوت
 def main():
     if not TOKEN:
