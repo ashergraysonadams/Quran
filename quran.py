@@ -49,7 +49,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.strip().lower()
 
     if text == "السلام عليكم":
-        return await update.message.reply_text("وعليكم السلام ورحمة الله")
+        return await update.message.reply_text("وعليكم السلام ورحمة الله وبركاته")
 
     if "صلوات" in text and "محمد" in text:
         return await update.message.reply_text("اللهم صَلِّ عَلَى مُحَمَّدٍ وَآلِ مُحَمَّدٍ")
