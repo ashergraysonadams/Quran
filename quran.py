@@ -71,7 +71,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     with open(audio_path, "rb") as audio:
                         return await update.message.reply_voice(voice=audio)
 
-    if text in ["بسملة", "البسملة"]:
+    if text == "البسملة":
         return await update.message.reply_text(
             "*البسملة:*\n"
             "﴿بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ﴾\n\n"
@@ -83,6 +83,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "*مثال:* ﴿بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ * الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ﴾",
             parse_mode="Markdown"
         )
+        
     if text == "ن الإظهار":
         return await update.message.reply_text(
             "*الإظهار الحلقي:*\n"
