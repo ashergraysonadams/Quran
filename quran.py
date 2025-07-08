@@ -71,7 +71,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     with open(audio_path, "rb") as audio:
                         return await update.message.reply_voice(voice=audio)
 
-    if text == "ال بسملة":
+    if text == "البسملة":
         return await update.message.reply_text(
             "*البسملة:*\n"
             "﴿بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ﴾\n\n"
