@@ -66,7 +66,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if len(parts) == 2 and parts[1].isdigit():
             n = int(parts[1])
             if 1 <= n <= 604:
-                audio_path = os.path.join(QURAN_PAGES_DIR, f"{n}.ogg")
+                audio_path = os.path.join(QURAN_PAGES_DIR, f"{n}.mp4")
                 if os.path.exists(audio_path):
                     with open(audio_path, "rb") as audio:
                         return await update.message.reply_voice(voice=audio)
