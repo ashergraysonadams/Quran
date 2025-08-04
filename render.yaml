@@ -1,7 +1,18 @@
-# render.yaml
 services:
-  - type: web
-    name: holly-quran-bot
-    env: docker
-    dockerfilePath: ./Dockerfile
-    plan: free
+  - type: worker
+    name: quran-stream-worker
+    env: python
+    repo: https://github.com/YourUsername/Quran
+    branch: main
+    buildCommand: ""
+    startCommand: "python quran.py"
+    autoDeploy: true
+    envVars:
+      - key: STREAM_KEY
+        sync: false
+      - key: HTTP_PROXY
+        sync: false
+      - key: HTTPS_PROXY
+        sync: false
+      - key: SOCKS_PROXY
+        sync: false
