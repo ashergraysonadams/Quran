@@ -2,7 +2,7 @@ services:
   - type: worker
     name: quran-stream-worker
     env: python
-    repo: https://github.com/YourUsername/Quran
+    repo: https://github.com/ashergraysonadams/Quran
     branch: main
     buildCommand: ""
     startCommand: "python quran.py"
