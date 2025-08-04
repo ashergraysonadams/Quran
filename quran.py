@@ -8,7 +8,7 @@ STREAM_KEY = os.getenv("STREAM_KEY")
 # المسار الأساسي للملفات داخل مجلد pages في GitHub
 BASE_URL = "https://raw.githubusercontent.com/ashergraysonadams/Quran/main/pages/"
 
-# تحميل ملف من الإنترنت
+# تحميل ملف من الإنترنت (بدون بروكسي)
 def download_file(url, filename):
     try:
         res = requests.get(url, timeout=15)
@@ -37,12 +37,17 @@ def prepare_assets(index):
 def stream_video(image_path, audio_path):
     env = os.environ.copy()
 
-    # إعدادات البروكسي فقط أثناء البث
-    for proxy_var in ["HTTP_PROXY", "HTTPS_PROXY", "SOCKS_PROXY"]:
-        value = os.getenv(proxy_var)
+    # إعداد البروكسي لعملية البث فقط
+    proxies = {
+        "HTTP_PROXY": os.getenv("HTTP_PROXY"),
+        "HTTPS_PROXY": os.getenv("HTTPS_PROXY"),
+        "SOCKS_PROXY": os.getenv("SOCKS_PROXY")
+    }
+
+    for key, value in proxies.items():
         if value:
-            env[proxy_var.lower()] = value
-            if proxy_var == "SOCKS_PROXY":
+            env[key.lower()] = value
+            if key == "SOCKS_PROXY":
                 env["all_proxy"] = value
 
     cmd = [
