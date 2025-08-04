@@ -1,79 +1,82 @@
 import os
 import subprocess
-import time
+import requests
 
-# إعدادات البث إلى YouTube Live
+# مفتاح البث من متغير بيئة في Render
 STREAM_KEY = os.getenv("STREAM_KEY")
-RTMP_URL = f"rtmp://a.rtmp.youtube.com/live2/{STREAM_KEY}"
 
-# إعدادات البروكسي من متغيرات البيئة
-http_proxy   = os.getenv("HTTP_PROXY")
-https_proxy  = os.getenv("HTTPS_PROXY")
-socks_proxy  = os.getenv("SOCKS_PROXY")
+# المسار الأساسي للملفات داخل مجلد pages في GitHub
+BASE_URL = "https://raw.githubusercontent.com/ashergraysonadams/Quran/main/pages/"
 
-# تجهيز البيئة لتشغيل FFmpeg عبر subprocess
-env = os.environ.copy()
-if http_proxy:
-    env["http_proxy"] = http_proxy
-if https_proxy:
-    env["https_proxy"] = https_proxy
-if socks_proxy:
-    env["all_proxy"] = socks_proxy  # SOCKS يستخدم all_proxy
+# تحميل ملف من الإنترنت
+def download_file(url, filename):
+    try:
+        res = requests.get(url, timeout=15)
+        res.raise_for_status()
+        with open(filename, "wb") as f:
+            f.write(res.content)
+        return True
+    except Exception as e:
+        print(f"❌ خطأ في تحميل {filename}: {e}")
+        return False
 
+# تحميل صورة وصوت حسب الرقم
+def prepare_assets(index):
+    img_name = f"{index}.jpg"
+    aud_name = f"{index}.mp4"
+
+    img_url = BASE_URL + img_name
+    aud_url = BASE_URL + aud_name
+
+    success_img = download_file(img_url, img_name)
+    success_aud = download_file(aud_url, aud_name)
+
+    return (img_name if success_img else None), (aud_name if success_aud else None)
+
+# بث صورة وصوت باستخدام FFmpeg مع البروكسي فقط أثناء البث
 def stream_video(image_path, audio_path):
+    env = os.environ.copy()
+
+    # إعدادات البروكسي فقط أثناء البث
+    for proxy_var in ["HTTP_PROXY", "HTTPS_PROXY", "SOCKS_PROXY"]:
+        value = os.getenv(proxy_var)
+        if value:
+            env[proxy_var.lower()] = value
+            if proxy_var == "SOCKS_PROXY":
+                env["all_proxy"] = value
+
     cmd = [
         "ffmpeg",
-        "-y",                    # يسمح بالكتابة فوق الملفات المؤقتة
-        "-loop", "1",            # تكرار الصورة الثابتة
-        "-i", image_path,        # إدخال الصورة
-        "-i", audio_path,        # إدخال الصوت من ملف mp4
-        "-map", "0:v:0",         # استخدم الفيديو من الصورة فقط
-        "-map", "1:a:0",         # استخدم الصوت فقط من ملف mp4
+        "-y",
+        "-loop", "1",
+        "-i", image_path,
+        "-i", audio_path,
+        "-map", "0:v:0",
+        "-map", "1:a:0",
         "-c:v", "libx264",
         "-preset", "veryfast",
         "-tune", "stillimage",
         "-c:a", "aac",
         "-b:a", "128k",
         "-pix_fmt", "yuv420p",
-        "-shortest",             # مدة الفيديو = مدة الصوت
-        "-f", "flv",             # تنسيق البث إلى RTMP
-        RTMP_URL
+        "-shortest",
+        "-f", "flv",
+        f"rtmp://a.rtmp.youtube.com/live2/{STREAM_KEY}"
     ]
+
+    print(f"🎙️ بدأ البث لـ: {image_path} + {audio_path}")
     subprocess.run(cmd, env=env)
+    print(f"✅ تم الانتهاء من البث لـ: {image_path}\n")
 
+# الحلقة الرئيسية: من 1 إلى 604
 def main():
-    try:
-        with open("pages", "r", encoding="utf-8") as f:
-            entries = [line.strip().split(",") for line in f if line.strip()]
-    except FileNotFoundError:
-        print("❌ الملف 'pages' غير موجود.")
-        return
-
-    if not entries:
-        print("⚠️ لا توجد تلاوات داخل ملف 'pages'.")
-        return
-
-    while True:  # إعادة التشغيل إلى ما لا نهاية
-        for entry in entries:
-            if len(entry) != 2:
-                print(f"⚠️ تنسيق غير صالح في السطر: {entry}")
-                continue
-
-            image_file, audio_file = entry
-            image_path = os.path.join("images", image_file)
-            audio_path = os.path.join("audio", audio_file)
-
-            if not os.path.exists(image_path) or not os.path.exists(audio_path):
-                print(f"❌ ملف غير موجود: {image_file} أو {audio_file}")
-                continue
-
-            print(f"📡 بدء بث: {image_file} + {audio_file}")
-            stream_video(image_path, audio_path)
-            print(f"✅ تم تشغيل: {audio_file}")
-            time.sleep(5)  # فاصل زمني بسيط قبل التلاوة التالية
-
-        print("🔁 تم تشغيل جميع التلاوات. إعادة التشغيل من البداية...")
-        time.sleep(3)  # فاصل زمني قبل بدء الحلقة الجديدة
+    for index in range(1, 605):
+        print(f"\n📦 جاري تجهيز الصفحة {index}")
+        image, audio = prepare_assets(index)
+        if image and audio:
+            stream_video(image, audio)
+        else:
+            print(f"⚠️ تعذر تحميل الملفات للصفحة {index}، سيتم تخطيها.")
 
 if __name__ == "__main__":
     main()
