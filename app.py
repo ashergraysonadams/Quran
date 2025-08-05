@@ -11,9 +11,10 @@ BASE_URL = "https://raw.githubusercontent.com/ashergraysonadams/Quran/main/pages
 LOCAL_DIR = "pages"
 os.makedirs(LOCAL_DIR, exist_ok=True)
 
-BATCH_SIZE = 10
+BATCH_SIZE = 2
+MAX_PAGE = 604
 
-# ✅ تحميل ملف واحد (صورة أو صوت)
+# تحميل ملف من الإنترنت
 def download_file(url, path):
     if os.path.exists(path):
         return True
@@ -27,76 +28,65 @@ def download_file(url, path):
         print(f"❌ فشل تحميل {path}: {e}")
         return False
 
-# ✅ تشغيل ffmpeg لبث الصورة والصوت مباشرة
+# تنفيذ FFmpeg لبث صورة وصوت
 def stream_video(image_path, audio_path):
     cmd = [
         "ffmpeg", "-y",
         "-loop", "1", "-i", image_path,
         "-i", audio_path,
-        "-vf", "scale=1080:1920:force_original_aspect_ratio=decrease,"
-               "pad=1080:1920:(ow-iw)/2:(oh-ih)/2,setrange=full,format=yuv420p",
+        "-vf", "scale=720:1280:force_original_aspect_ratio=decrease,"
+               "pad=720:1280:(ow-iw)/2:(oh-ih)/2,setrange=full,format=yuv420p",
         "-map", "0:v:0", "-map", "1:a:0",
-        "-c:v", "libx264", "-preset", "veryfast", "-tune", "stillimage",
-        "-c:a", "aac", "-b:a", "128k",
+        "-c:v", "libx264", "-preset", "ultrafast", "-tune", "stillimage",
+        "-c:a", "aac", "-b:a", "96k",
         "-pix_fmt", "yuv420p",
         "-shortest", "-f", "flv",
         f"rtmp://a.rtmp.youtube.com/live2/{STREAM_KEY}"
     ]
     subprocess.run(cmd)
 
-# ✅ حذف الكاش (الملف بعد البث)
-def delete_cache(image_path, audio_path):
-    for path in [image_path, audio_path]:
+# حذف الملفات بعد التشغيل
+def delete_cache(*paths):
+    for path in paths:
         try:
             os.remove(path)
-            print(f"🗑️ تم حذف الكاش: {path}")
+            print(f"🗑️ حذف: {path}")
         except Exception as e:
-            print(f"⚠️ فشل حذف {path}: {e}")
+            print(f"⚠️ لم يتم حذف {path}: {e}")
 
-# ✅ تحميل دفعة من الملفات (صور وصوت)
+# تحميل دفعة من صفحتين فقط
 async def fetch_batch(start_index):
     batch = []
     for i in range(start_index, start_index + BATCH_SIZE):
-        img_name = f"{i}.jpg"
-        aud_name = f"{i}.mp4"
+        page_num = ((i - 1) % MAX_PAGE) + 1  # إعادة من البداية بعد 604
+        img_name = f"{page_num}.jpg"
+        aud_name = f"{page_num}.mp4"
         img_path = os.path.join(LOCAL_DIR, img_name)
         aud_path = os.path.join(LOCAL_DIR, aud_name)
         img_url = BASE_URL + img_name
         aud_url = BASE_URL + aud_name
 
-        success_img = download_file(img_url, img_path)
-        success_aud = download_file(aud_url, aud_path)
-
-        if success_img and success_aud:
+        if download_file(img_url, img_path) and download_file(aud_url, aud_path):
             batch.append((img_path, aud_path))
         else:
-            print(f"⚠️ فشل تحميل الصفحة {i}")
+            print(f"⚠️ تخطي الصفحة {page_num}")
     return batch
 
-# ✅ تشغيل دفعة الصور والصوت، وتحميل التالية قبل انتهاء الأخيرة
-async def stream_batches():
+# تشغيل الدفعات باستمرار، اثنين اثنين، ثم إعادة
+async def stream_loop():
     index = 1
-    current_batch = await fetch_batch(index)
-    index += BATCH_SIZE
-
-    while current_batch:
-        # بدء تحميل الدفعة التالية أثناء تشغيل الدفعة الحالية
-        next_batch_task = asyncio.create_task(fetch_batch(index))
-        index += BATCH_SIZE
-
-        for i, (image_path, audio_path) in enumerate(current_batch):
-            print(f"🎬 بدء بث الصفحة: {image_path} + {audio_path}")
+    while True:
+        batch = await fetch_batch(index)
+        for image_path, audio_path in batch:
+            print(f"📡 بث: {image_path} + {audio_path}")
             stream_video(image_path, audio_path)
             delete_cache(image_path, audio_path)
+        index += BATCH_SIZE
 
-        print("✅ انتهاء الدفعة، ننتقل للتالية...")
-        current_batch = await next_batch_task
-
-# ✅ نقطة دخول السيرفر
 @app.route("/")
 def index():
-    asyncio.run(stream_batches())
-    return "📡 بدأ البث التلقائي عبر دفعات الصور والصوت"
+    asyncio.run(stream_loop())
+    return "✅ بدأ البث المستمر صفحتين صفحتين مع إدارة ذكية للذاكرة"
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
