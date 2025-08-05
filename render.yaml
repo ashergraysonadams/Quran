@@ -2,5 +2,5 @@ services:
   - type: web
     name: quran-flask-stream
     env: python
-    startCommand: python app.py
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
     plan: free
