@@ -49,12 +49,13 @@ def collect_ordered_pairs():
             print(f"⚠️ الصفحة {index} غير مكتملة، تم تخطيها.")
     return pairs
 
-# تنفيذ البث باستخدام FFmpeg
+# تنفيذ البث باستخدام FFmpeg مع ضبط القياس إلى 9:16 (1080x1920)
 def stream_video(image_path, audio_path):
     cmd = [
         "ffmpeg", "-y",
         "-loop", "1", "-i", image_path,
         "-i", audio_path,
+        "-vf", "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2",
         "-map", "0:v:0", "-map", "1:a:0",
         "-c:v", "libx264", "-preset", "veryfast", "-tune", "stillimage",
         "-c:a", "aac", "-b:a", "128k", "-pix_fmt", "yuv420p",
