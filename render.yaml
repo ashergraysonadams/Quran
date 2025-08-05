@@ -1,18 +1,6 @@
 services:
-  - type: worker
-    name: quran-stream-worker
+  - type: web
+    name: quran-stream-flask
     env: python
-    repo: https://github.com/ashergraysonadams/Quran
-    branch: main
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "python quran.py"
-    autoDeploy: true
-    envVars:
-      - key: STREAM_KEY
-        sync: false
-      - key: HTTP_PROXY
-        sync: false
-      - key: HTTPS_PROXY
-        sync: false
-      - key: SOCKS_PROXY
-        sync: false
+    startCommand: python app.py
+    plan: free
