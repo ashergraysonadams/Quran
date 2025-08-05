@@ -1,7 +1,7 @@
 import os
 import subprocess
 import requests
-import re
+import asyncio
 from flask import Flask
 
 app = Flask(__name__)
@@ -10,6 +10,8 @@ STREAM_KEY = os.getenv("STREAM_KEY")
 BASE_URL = "https://raw.githubusercontent.com/ashergraysonadams/Quran/main/pages/"
 LOCAL_DIR = "pages"
 os.makedirs(LOCAL_DIR, exist_ok=True)
+
+BATCH_SIZE = 10
 
 def download_file(url, path):
     if os.path.exists(path):
@@ -40,22 +42,53 @@ def stream_video(image_path, audio_path):
     ]
     subprocess.run(cmd)
 
+def delete_cache(image_path, audio_path):
+    try:
+        os.remove(image_path)
+        os.remove(audio_path)
+        print(f"🗑️ تم حذف الكاش: {image_path}, {audio_path}")
+    except Exception as e:
+        print(f"⚠️ مشكلة في حذف الكاش: {e}")
+
+async def fetch_batch(start_index):
+    batch = []
+    for i in range(start_index, start_index + BATCH_SIZE):
+        img_name = f"{i}.jpg"
+        aud_name = f"{i}.mp4"
+        img_path = os.path.join(LOCAL_DIR, img_name)
+        aud_path = os.path.join(LOCAL_DIR, aud_name)
+        img_url = BASE_URL + img_name
+        aud_url = BASE_URL + aud_name
+
+        success_img = download_file(img_url, img_path)
+        success_aud = download_file(aud_url, aud_path)
+
+        if success_img and success_aud:
+            batch.append((img_path, aud_path))
+        else:
+            print(f"⚠️ فشل تحميل الدفعة رقم {i}")
+    return batch
+
+async def stream_batches():
+    index = 1
+    current_batch = await fetch_batch(index)
+    index += BATCH_SIZE
+
+    while current_batch:
+        next_batch_task = asyncio.create_task(fetch_batch(index))
+        index += BATCH_SIZE
+
+        for i, (image_path, audio_path) in enumerate(current_batch):
+            print(f"🎬 تشغيل الصفحة: {image_path}, {audio_path}")
+            stream_video(image_path, audio_path)
+            delete_cache(image_path, audio_path)
+
+        current_batch = await next_batch_task
+
 @app.route("/")
 def index():
-    image_path = os.path.join(LOCAL_DIR, "1.jpg")
-    audio_path = os.path.join(LOCAL_DIR, "1.mp4")
-
-    img_url = BASE_URL + "1.jpg"
-    aud_url = BASE_URL + "1.mp4"
-
-    success_img = download_file(img_url, image_path)
-    success_aud = download_file(aud_url, audio_path)
-
-    if success_img and success_aud:
-        stream_video(image_path, audio_path)
-        return "✅ بدأ البث من الصفحة الأولى"
-    else:
-        return "⚠️ الملفات غير موجودة أو فشل التحميل"
+    asyncio.run(stream_batches())
+    return "✅ بدأ البث التلقائي عبر دفعات الصور والصوت"
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
