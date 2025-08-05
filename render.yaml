@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: quran-stream-flask
+    name: quran-flask-stream
     env: python
     startCommand: python app.py
     plan: free
